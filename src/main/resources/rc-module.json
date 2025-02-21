@@ -1,0 +1,11 @@
+{
+  "main": "group.aelysium.rustyconnector.modules.friend.FriendRegistry$Tinder",
+  "name": "FriendRegistry",
+  "description": "Provides the ability for players to add others as friends and form social groups.",
+  "environments": [
+    "proxy"
+  ],
+  "dependencies": [
+    "haze"
+  ]
+}
