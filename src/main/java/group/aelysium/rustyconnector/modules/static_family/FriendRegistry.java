@@ -27,9 +27,9 @@ public class FriendRegistry implements ModuleParticle {
 
     private final ScheduledExecutorService cleaner = Executors.newSingleThreadScheduledExecutor();
     protected final FriendConfig config;
+    protected final Flux<? extends Database> database;
     protected final Map<UUID, FriendRequest> requests = new ConcurrentHashMap<>();
     protected final Map<UUID, Set<UUID>> friends = new ConcurrentHashMap<>();
-    protected final Flux<? extends Database> database;
 
     public FriendRegistry(
             @NotNull FriendConfig config

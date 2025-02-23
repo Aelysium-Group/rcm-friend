@@ -4,6 +4,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.time.Instant;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -53,6 +54,18 @@ public class FriendRequest {
         this.status.set(Status.IGNORED);
 
         this.registry.requests.remove(this.target);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        FriendRequest that = (FriendRequest) o;
+        return Objects.equals(sender, that.sender) && Objects.equals(target, that.target);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(sender, target);
     }
 
     public enum Status {
