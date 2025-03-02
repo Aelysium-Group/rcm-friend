@@ -1,5 +1,5 @@
 {
-  "main": "group.aelysium.rustyconnector.modules.friend.FriendRegistry$Tinder",
+  "main": "group.aelysium.rustyconnector.modules.friend.FriendRegistry$Builder",
   "name": "FriendRegistry",
   "description": "Provides the ability for players to add others as friends and form social groups.",
   "environments": [

@@ -1,4 +1,4 @@
-package group.aelysium.rustyconnector.modules.static_family;
+package group.aelysium.rustyconnector.modules.friend;
 
 import org.jetbrains.annotations.NotNull;
 

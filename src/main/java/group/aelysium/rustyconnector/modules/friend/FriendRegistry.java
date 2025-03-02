@@ -1,33 +1,34 @@
-package group.aelysium.rustyconnector.modules.static_family;
+package group.aelysium.rustyconnector.modules.friend;
 
 import group.aelysium.rustyconnector.RC;
 import group.aelysium.rustyconnector.common.events.EventManager;
-import group.aelysium.rustyconnector.common.modules.ExternalModuleTinder;
-import group.aelysium.rustyconnector.common.modules.ModuleParticle;
+import group.aelysium.rustyconnector.common.haze.HazeDatabase;
+import group.aelysium.rustyconnector.common.modules.ExternalModuleBuilder;
+import group.aelysium.rustyconnector.common.modules.Module;
 import group.aelysium.rustyconnector.proxy.ProxyKernel;
-import group.aelysium.rustyconnector.shaded.group.aelysium.ara.Particle;
-import group.aelysium.rustyconnector.shaded.group.aelysium.haze.Database;
+import group.aelysium.rustyconnector.shaded.group.aelysium.ara.Flux;
 import group.aelysium.rustyconnector.shaded.group.aelysium.haze.lib.DataHolder;
-import group.aelysium.rustyconnector.shaded.group.aelysium.haze.lib.DataKey;
 import group.aelysium.rustyconnector.shaded.group.aelysium.haze.lib.Filterable;
+import group.aelysium.rustyconnector.shaded.group.aelysium.haze.lib.Type;
 import group.aelysium.rustyconnector.shaded.group.aelysium.haze.query.CreateRequest;
 import group.aelysium.rustyconnector.shaded.group.aelysium.haze.query.ReadRequest;
 import net.kyori.adventure.text.Component;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-public class FriendRegistry implements ModuleParticle {
+public class FriendRegistry implements Module {
     private static final String FRIENDS_TABLE = "friends";
 
     private final ScheduledExecutorService cleaner = Executors.newSingleThreadScheduledExecutor();
     protected final FriendConfig config;
-    protected final Flux<? extends Database> database;
+    protected final Flux<HazeDatabase> database;
     protected final Map<UUID, FriendRequest> requests = new ConcurrentHashMap<>();
     protected final Map<UUID, Set<UUID>> friends = new ConcurrentHashMap<>();
 
@@ -36,19 +37,19 @@ public class FriendRegistry implements ModuleParticle {
     ) throws Exception {
         this.config = config;
 
-        this.database = RC.P.Haze().fetchDatabase(this.config.database)
-                .orElseThrow(()->new NoSuchElementException("No database exists on the haze provider with the name '"+this.config.database+"'."));
-        Database db = this.database.observe(1, TimeUnit.MINUTES);
+        this.database = RC.P.Haze().fetchDatabase(this.config.database);
+        if(this.database == null) throw new NoSuchElementException("No database exists on the haze provider with the name '"+this.config.database+"'.");
+        HazeDatabase db = this.database.get(1, TimeUnit.MINUTES);
 
         this.cleaner.schedule(this::clean, 10, TimeUnit.MINUTES);
         if(db.doesDataHolderExist(FRIENDS_TABLE)) return;
 
         DataHolder table = new DataHolder(FRIENDS_TABLE);
-        List<DataKey> columns = List.of(
-                new DataKey("player_uuid", DataKey.DataType.STRING).length(36).nullable(false),
-                new DataKey("server_id", DataKey.DataType.STRING).length(64).nullable(false),
-                new DataKey("family_id", DataKey.DataType.STRING).length(16).nullable(false),
-                new DataKey("last_joined", DataKey.DataType.DATETIME).nullable(false)
+        Map<String, Type> columns = Map.of(
+                "player_uuid", Type.STRING(36).nullable(false),
+                "server_id", Type.STRING(64).nullable(false),
+                "family_id", Type.STRING(16).nullable(false),
+                "last_joined", Type.DATETIME().nullable(false)
         );
         columns.forEach(table::addKey);
         db.createDataHolder(table);
@@ -82,7 +83,7 @@ public class FriendRegistry implements ModuleParticle {
     }
 
     protected @NotNull Set<UUID> cacheFor(@NotNull UUID player) throws Exception {
-        Database db = this.database.observe(5, TimeUnit.SECONDS);
+        HazeDatabase db = this.database.get(5, TimeUnit.SECONDS);
         ReadRequest sp = db.newReadRequest(FRIENDS_TABLE);
         sp.filters().filterBy("player1_uuid", new Filterable.FilterValue(player, Filterable.Qualifier.EQUALS));
         sp.filters().filterBy("player2_uuid", new Filterable.FilterValue(player, Filterable.Qualifier.EQUALS));
@@ -109,7 +110,7 @@ public class FriendRegistry implements ModuleParticle {
             uuids[1] = player1;
         }
 
-        Database db = this.database.observe(5, TimeUnit.SECONDS);
+        HazeDatabase db = this.database.get(5, TimeUnit.SECONDS);
         CreateRequest sp = db.newCreateRequest(FRIENDS_TABLE);
         sp.parameter("player1_uuid", uuids[0]);
         sp.parameter("player2_uuid", uuids[1]);
@@ -128,9 +129,9 @@ public class FriendRegistry implements ModuleParticle {
         this.cleaner.close();
     }
 
-    public static class Tinder extends ExternalModuleTinder<FriendRegistry> {
-        public void bind(@NotNull ProxyKernel kernel, @NotNull Particle instance) {
-            kernel.fetchModule("EventManager").executeNow(e->{
+    public static class Tinder extends ExternalModuleBuilder<FriendRegistry> {
+        public void bind(@NotNull ProxyKernel kernel, @NotNull FriendRegistry instance) {
+            kernel.fetchModule("EventManager").onStart(e->{
                 ((EventManager) e).listen(new OnConnect());
                 ((EventManager) e).listen(new OnDisconnect());
             });
@@ -138,7 +139,7 @@ public class FriendRegistry implements ModuleParticle {
 
         @NotNull
         @Override
-        public FriendRegistry onStart() throws Exception {
+        public FriendRegistry onStart(@NotNull Path dataDirectory) throws Exception {
             return new FriendRegistry(FriendConfig.New());
         }
     }
