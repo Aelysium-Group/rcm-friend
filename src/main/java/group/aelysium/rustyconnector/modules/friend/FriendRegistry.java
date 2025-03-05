@@ -129,7 +129,7 @@ public class FriendRegistry implements Module {
         this.cleaner.close();
     }
 
-    public static class Tinder extends ExternalModuleBuilder<FriendRegistry> {
+    public static class Builder extends ExternalModuleBuilder<FriendRegistry> {
         public void bind(@NotNull ProxyKernel kernel, @NotNull FriendRegistry instance) {
             kernel.fetchModule("EventManager").onStart(e->{
                 ((EventManager) e).listen(new OnConnect());
