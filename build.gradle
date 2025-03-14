@@ -21,7 +21,7 @@ repositories {
 }
 
 dependencies {
-    compileOnly 'group.aelysium:rustyconnector-core:0.9.5'
+    compileOnly 'group.aelysium.rustyconnector:core:0.9.14'
 
     compileOnly 'net.kyori:adventure-api:4.17.0'
 }
@@ -42,9 +42,10 @@ javadoc {
 }
 
 shadowJar {
-    archiveBaseName.set(archives_base_name)
     archiveClassifier.set('')
     mergeServiceFiles()
+
+    relocate "group.aelysium.rustyconnector.common", 'group.aelysium.rustyconnector.modules.friend.shaded.rustyconnector.common'
 }
 
 tasks.named('jar').configure {
@@ -55,6 +56,16 @@ tasks.withType(JavaCompile) {
 }
 tasks.withType(Javadoc) {
     options.addStringOption('Xdoclint:none', '-quiet')
+}
+
+tasks.withType(Jar) {
+    if (name == 'shadowJar') {
+        archiveFileName.set("${archives_base_name}-${project.version}.jar")
+    } else if (name == 'javadocJar') {
+        archiveFileName.set("${archives_base_name}-${project.version}-javadoc.jar")
+    } else if (name == 'sourcesJar') {
+        archiveFileName.set("${archives_base_name}-${project.version}-sources.jar")
+    }
 }
 
 jar.finalizedBy(shadowJar)

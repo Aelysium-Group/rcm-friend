@@ -1,6 +1,7 @@
 package group.aelysium.rustyconnector.modules.friend;
 
 import group.aelysium.rustyconnector.RC;
+import group.aelysium.rustyconnector.common.errors.Error;
 import group.aelysium.rustyconnector.common.events.EventManager;
 import group.aelysium.rustyconnector.common.haze.HazeDatabase;
 import group.aelysium.rustyconnector.common.modules.ExternalModuleBuilder;
@@ -8,10 +9,10 @@ import group.aelysium.rustyconnector.common.modules.Module;
 import group.aelysium.rustyconnector.proxy.ProxyKernel;
 import group.aelysium.rustyconnector.shaded.group.aelysium.ara.Flux;
 import group.aelysium.rustyconnector.shaded.group.aelysium.haze.lib.DataHolder;
-import group.aelysium.rustyconnector.shaded.group.aelysium.haze.lib.Filterable;
+import group.aelysium.rustyconnector.shaded.group.aelysium.haze.lib.Filter;
 import group.aelysium.rustyconnector.shaded.group.aelysium.haze.lib.Type;
-import group.aelysium.rustyconnector.shaded.group.aelysium.haze.query.CreateRequest;
-import group.aelysium.rustyconnector.shaded.group.aelysium.haze.query.ReadRequest;
+import group.aelysium.rustyconnector.shaded.group.aelysium.haze.requests.CreateRequest;
+import group.aelysium.rustyconnector.shaded.group.aelysium.haze.requests.ReadRequest;
 import net.kyori.adventure.text.Component;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -63,7 +64,7 @@ public class FriendRegistry implements Module {
             });
             expired.forEach(this.requests::remove);
         } catch (Exception e) {
-            RC.Error(group.aelysium.rustyconnector.common.errors.Error.from(e).whileAttempting("To clear out expired party invitations."));
+            RC.Error(Error.from(e).whileAttempting("To clear out expired party invitations."));
         }
 
         this.cleaner.schedule(this::clean, 20, TimeUnit.SECONDS);
@@ -85,8 +86,11 @@ public class FriendRegistry implements Module {
     protected @NotNull Set<UUID> cacheFor(@NotNull UUID player) throws Exception {
         HazeDatabase db = this.database.get(5, TimeUnit.SECONDS);
         ReadRequest sp = db.newReadRequest(FRIENDS_TABLE);
-        sp.filters().filterBy("player1_uuid", new Filterable.FilterValue(player, Filterable.Qualifier.EQUALS));
-        sp.filters().filterBy("player2_uuid", new Filterable.FilterValue(player, Filterable.Qualifier.EQUALS));
+        sp.withFilter(
+            Filter
+                .by("player1_uuid", new Filter.Value(player, Filter.Qualifier.EQUALS))
+                .OR("player2_uuid", new Filter.Value(player, Filter.Qualifier.EQUALS))
+        );
         Set<FriendsDTO> response = sp.execute(FriendsDTO.class);
 
         Set<UUID> friends = new HashSet<>();
