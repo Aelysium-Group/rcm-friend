@@ -21,9 +21,10 @@ repositories {
 }
 
 dependencies {
-    compileOnly 'group.aelysium.rustyconnector:core:0.9.14'
+    compileOnly 'group.aelysium.rustyconnector:core:0.9.33'
 
     compileOnly 'net.kyori:adventure-api:4.17.0'
+    implementation 'org.incendo:cloud-core:2.0.0'
 }
 
 java {

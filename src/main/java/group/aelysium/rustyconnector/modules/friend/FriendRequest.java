@@ -10,26 +10,26 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class FriendRequest {
     private final FriendRegistry registry;
-    private final UUID sender;
-    private final UUID target;
+    private final String senderID;
+    private final String targetID;
     private final AtomicReference<Status> status = new AtomicReference<>(Status.PENDING);
     private final Instant issuedAt = Instant.now();
 
     protected FriendRequest(
             @NotNull FriendRegistry registry,
-            @NotNull UUID sender,
-            @NotNull UUID target
+            @NotNull String senderID,
+            @NotNull String targetID
     ) {
         this.registry = registry;
-        this.sender = sender;
-        this.target = target;
+        this.senderID = senderID;
+        this.targetID = targetID;
     }
 
-    public UUID sender() {
-        return this.sender;
+    public String senderID() {
+        return this.senderID;
     }
-    public UUID target() {
-        return this.target;
+    public String targetID() {
+        return this.targetID;
     }
     public Status status() {
         return this.status.get();
@@ -41,31 +41,31 @@ public class FriendRequest {
     public void accept() {
         if(!this.status.get().equals(Status.PENDING)) return;
 
-        this.registry.friends.computeIfAbsent(this.sender, u -> new HashSet<>()).add(this.target);
-        this.registry.friends.computeIfAbsent(this.target, u -> new HashSet<>()).add(this.sender);
+        this.registry.friends.computeIfAbsent(this.senderID, u -> new HashSet<>()).add(this.targetID);
+        this.registry.friends.computeIfAbsent(this.targetID, u -> new HashSet<>()).add(this.senderID);
 
         this.status.set(Status.ACCEPTED);
 
-        this.registry.requests.remove(this.target);
+        this.registry.requests.remove(this.targetID);
     }
     public void ignore() {
         if(!this.status.get().equals(Status.PENDING)) return;
 
         this.status.set(Status.IGNORED);
 
-        this.registry.requests.remove(this.target);
+        this.registry.requests.remove(this.targetID);
     }
 
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
         FriendRequest that = (FriendRequest) o;
-        return Objects.equals(sender, that.sender) && Objects.equals(target, that.target);
+        return Objects.equals(senderID, that.senderID) && Objects.equals(targetID, that.targetID);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(sender, target);
+        return Objects.hash(senderID, targetID);
     }
 
     public enum Status {

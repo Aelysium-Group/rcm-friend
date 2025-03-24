@@ -1,6 +1,6 @@
 {
   "main": "group.aelysium.rustyconnector.modules.friend.FriendRegistry$Builder",
-  "name": "FriendRegistry",
+  "name": "Friends",
   "description": "Provides the ability for players to add others as friends and form social groups.",
   "environments": [
     "proxy"

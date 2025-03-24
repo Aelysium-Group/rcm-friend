@@ -1,8 +1,11 @@
 package group.aelysium.rustyconnector.modules.friend;
 
+import group.aelysium.rustyconnector.proxy.util.LiquidTimestamp;
 import group.aelysium.rustyconnector.shaded.group.aelysium.declarative_yaml.DeclarativeYAML;
 import group.aelysium.rustyconnector.shaded.group.aelysium.declarative_yaml.annotations.*;
 import group.aelysium.rustyconnector.shaded.group.aelysium.declarative_yaml.lib.Printer;
+
+import java.text.ParseException;
 
 @Namespace("rustyconnector-modules")
 @Config("/rcm-friend/config.yml")
@@ -33,6 +36,9 @@ import group.aelysium.rustyconnector.shaded.group.aelysium.declarative_yaml.lib.
         "###########################################################################################################"
 })
 public class FriendConfig {
+    private int internalExpirationHash = 0;
+    private LiquidTimestamp expirationCache = null;
+    
     @Comment({
             "############################################################",
             "#||||||||||||||||||||||||||||||||||||||||||||||||||||||||||#",
@@ -65,6 +71,47 @@ public class FriendConfig {
     })
     @Node(1)
     public int maxFriends = 25;
+    
+    @Node
+    private String friendRequestExpiration = "10 MINUTES";
+    
+    public LiquidTimestamp requestExpiration() {
+        // Just some simple logic so that we don't have to re-parse the string every time we wanna access the liquid timestamp
+        if(internalExpirationHash != friendRequestExpiration.hashCode()) {
+            internalExpirationHash = friendRequestExpiration.hashCode();
+            try {
+                expirationCache = LiquidTimestamp.from(friendRequestExpiration);
+            } catch (ParseException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        return expirationCache;
+    }
+    
+    @Comment({
+        "############################################################",
+        "#||||||||||||||||||||||||||||||||||||||||||||||||||||||||||#",
+        "#                      Control Panel                       #",
+        "#                                                          #",
+        "#               ---------------------------                #",
+        "#                                                          #",
+        "# | ",
+        "#                                                          #",
+        "#               ---------------------------                #",
+        "#                                                          #",
+        "#||||||||||||||||||||||||||||||||||||||||||||||||||||||||||#",
+        "############################################################",
+        "",
+        "#",
+        "# Lets you set the name of the friend messaging command.",
+        "# Usage:",
+        "# /<alias> <username> <message>",
+        "#"
+    })
+    @Node(2)
+    public String friendCommandAlias = "friend";
+    @Node(3)
+    public String unfriendCommandAlias = "unfriend";
 
     @Comment({
         "#",
@@ -72,7 +119,7 @@ public class FriendConfig {
         "# This feature works regardless of what servers your players are on.",
         "#"
     })
-    @Node(2)
+    @Node(4)
     public boolean social_notifications = false;
 
     @Comment({
@@ -81,7 +128,7 @@ public class FriendConfig {
         "# If this is disabled, players will only be able to see that their friends are online.",
         "#"
     })
-    @Node(3)
+    @Node(5)
     public boolean social_showFamily = false;
 
     @Comment({
@@ -90,47 +137,37 @@ public class FriendConfig {
         "#                     Friend Messaging                     #",
         "#                                                          #",
         "#               ---------------------------                #",
+        "#                                                          #",
         "# | Let your players message their friends from anywhere   #",
         "# | on your network!                                       #",
         "#                                                          #",
         "#   NOTE: This command is player only!                     #",
         "#                                                          #",
-        "#               ----------------------------               #",
-        "#                        Permission:                       #",
-        "#                rustyconnector.command.fm                 #",
-        "#               ----------------------------               #",
-        "#                          Usage:                          #",
-        "#                 /fm <username> <message>                 #",
-        "#               ----------------------------               #",
+        "#               ---------------------------                #",
         "#                                                          #",
         "#||||||||||||||||||||||||||||||||||||||||||||||||||||||||||#",
         "############################################################",
+        "",
         "#",
-        "# Are friends allowed to use /fm to message each-other on a server.",
-        "# If this is disabled, nothing stops them from using another command like /msg to chat.",
-        "#"
-    })
-    @Node(4)
-    public boolean social_messagingServer = false;
-    @Comment({
-        "#",
-        "# Are friends allowed to message each-other across servers within a family?",
-        "# If enabled, the setting of 'messaging-server' will be ignored.",
-        "#"
-    })
-    @Node(5)
-    public boolean social_messagingFamily = false;
-    @Comment({
-        "#",
-        "# Are friends allowed to message each-other across the entire network?",
-        "# This setting allows players to message each-other anywhere regardless of what server or family they're on.",
-        "# If enabled, the setting of 'messaging-server' and 'messaging-family' will be ignored.",
+        "# Lets you set the name of the friend messaging command.",
+        "# Usage:",
+        "# /<alias> <username> <message>",
         "#"
     })
     @Node(6)
-    public boolean social_messagingNetwork = false;
+    public String social_friendMessageAlias = "fm";
+    
+    @Comment({
+        "#",
+        "# Are friends allowed to use /fm to message each-other.",
+        "#"
+    })
+    @Node(7)
+    public boolean social_messagingEnabled = true;
 
-    public static FriendConfig New() {
-        return DeclarativeYAML.From(FriendConfig.class, new Printer());
+    public static FriendConfig New() throws ParseException {
+        FriendConfig config = DeclarativeYAML.From(FriendConfig.class, new Printer());
+        LiquidTimestamp.from(config.friendRequestExpiration);
+        return config;
     }
 }
